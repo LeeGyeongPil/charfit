@@ -222,7 +222,7 @@ Exit codes: `0` every checked item passes, `1` a limit is exceeded (or, for `fix
 | Stays quiet when it should not | 12/12 |
 | Tasks solved with the skill | 5/5 |
 | Tasks solved without it (baseline) | 2/5 |
-| Mean score gain (Δ) | +0.32 |
+| Mean score gain (Δ) | +0.28 |
 | Tasks that catch a broken script | 5/5 |
 | Codex CLI | not verified |
 

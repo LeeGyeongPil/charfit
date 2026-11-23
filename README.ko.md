@@ -226,7 +226,7 @@ $ python3 skills/charfit/scripts/charfit.py check --profile sms --json "Tu códi
 | 필요 없을 때 안 불림 | 12/12 |
 | 스킬로 푼 작업 | 5/5 |
 | 스킬 없이 푼 작업(기준선) | 2/5 |
-| 평균 점수 차이(Δ) | +0.32 |
+| 평균 점수 차이(Δ) | +0.28 |
 | 가짜 스크립트를 잡아낸 비율 | 5/5 |
 | Codex CLI | 미검증 |
 
