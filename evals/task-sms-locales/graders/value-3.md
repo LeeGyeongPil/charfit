@@ -1,0 +1,4 @@
+---
+type: regex
+pattern: '(?:(?:2\+|2 or more|two or more|more than one|at least (?:2|two)|[Mm]ulti|[Mm]ultiple|[Ss]everal|longer than one|over one|[Ss]plit|[Cc]oncatenated|2건 이상|두 건 이상|2개 이상|여러 건|여러 조각|분할|나뉘|1건 초과|1건을 넘)(?:[^\d\n]|\([^)\n]{0,30}\)|(?<![\d.,])(?:24)(?![\d])){0,30}?(?<![\d.,])14(?!\d|[.,]\d)(?!(?:th|st|nd|rd)\b|\s*(?:번째|번|째))|(?<![\d.,])14(?!\d|[.,]\d)(?!(?:th|st|nd|rd)\b|\s*(?:번째|번|째))(?:[^\d\n:;,|]|(?<![\d.,])(?:24)(?![\d])){0,40}?(?:2\+|2 or more|two or more|more than one|at least (?:2|two)|[Mm]ulti|[Mm]ultiple|[Ss]everal|longer than one|over one|[Ss]plit|[Cc]oncatenated|2건 이상|두 건 이상|2개 이상|여러 건|여러 조각|분할|나뉘|1건 초과|1건을 넘))'
+---
