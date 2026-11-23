@@ -1,0 +1,12 @@
+{
+  "name": "charfit-skill",
+  "owner": { "name": "LeeGyeongPil" },
+  "description": "Exact SMS segment counts for whole message batches, segment start positions, GSM-7 cleanup and strict EUC-KR Korean SMS/LMS byte limits.",
+  "plugins": [
+    {
+      "name": "charfit",
+      "source": "./",
+      "description": "Count and check text by SMS segment (single texts or JSONL batches), find where each segment starts, clean text to GSM-7, and check Korean SMS/LMS limits in strict EUC-KR. Also covers UTF-16/UTF-8 limits and an X approximation."
+    }
+  ]
+}
