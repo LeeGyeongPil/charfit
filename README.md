@@ -96,7 +96,7 @@ Result: all profiles pass.
 ```
 
 ![check output listing six segments and the character index where each one starts](docs/images/02-split-points.png)
-*The text has 741 characters but 765 billed units, because 24 characters such as `[` and `€` cost 2. The Greek capital `Ω` and `§` are in the GSM-7 alphabet, so they cost 1 and keep the message GSM-7. 765 is exactly 5 × 153, yet the text needs 6 segments: segment 5 is full at 152 units when a `€` begins, and a two-unit character never straddles a boundary, so it moves whole to segment 6. Segment 2 starts at index 147, not 153, for the same reason.*
+*The text has 741 characters (`--file` ignores one trailing newline, so `wc -m` shows 742) but 765 billed units, because 24 characters such as `[` and `€` cost 2. The Greek capital `Ω` and `§` are in the GSM-7 alphabet, so they cost 1 and keep the message GSM-7. 765 is exactly 5 × 153, yet the text needs 6 segments: segment 5 is full at 152 units when a `€` begins, and a two-unit character never straddles a boundary, so it moves whole to segment 6. Segment 2 starts at index 147, not 153, for the same reason.*
 
 **3. Clean a batch up for GSM-7** (`fix-sms --jsonl`; exit code 1 means some item is still UCS-2 after cleanup, here because of emoji, `ê` and a backtick used as an apostrophe). The tail of the output:
 
@@ -221,8 +221,8 @@ Exit codes: `0` every checked item passes, `1` a limit is exceeded (or, for `fix
 | Triggers when it should | 12/12 |
 | Stays quiet when it should not | 12/12 |
 | Tasks solved with the skill | 5/5 |
-| Tasks solved without it (baseline) | 1/5 |
-| Mean score gain (Δ) | +0.40 |
+| Tasks solved without it (baseline) | 2/5 |
+| Mean score gain (Δ) | +0.32 |
 | Tasks that catch a broken script | 5/5 |
 | Codex CLI | not verified |
 
@@ -246,7 +246,7 @@ flowchart LR
 3. The script reads its arguments, an optional file and standard input, and prints per-item values, culprit characters, `segment_starts` and `totals`. Exit code 1 means a limit is exceeded.
 4. The agent reports those values as they are. It does not add up segments or divide units itself.
 
-No network access, no files written, no packages beyond Python itself. The rules and their sources are in [`skills/charfit/references/rules.md`](skills/charfit/references/rules.md).
+No network access, no files written by the tool (running the script directly may leave a `__pycache__` folder next to it), no packages beyond Python itself. The rules and their sources are in [`skills/charfit/references/rules.md`](skills/charfit/references/rules.md).
 
 ## Rules and limits
 
@@ -276,7 +276,7 @@ The full rules are in [`skills/charfit/references/rules.md`](skills/charfit/refe
 ## Development
 
 ```
-uv sync && uv run pytest -q
+uv sync && uv run pytest
 ```
 
 The `evals/` folder holds 12 trigger cases, 12 not-triggered cases (8 near misses) and 5 task cases with fixtures (the files used above). Run them with `claude plugin eval` (see the Claude Code documentation).
