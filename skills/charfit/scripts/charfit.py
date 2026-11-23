@@ -24,7 +24,7 @@ from typing import Any, Dict, List, NoReturn, Optional, Sequence
 import _charfit_rules as rules
 from _charfit_i18n import LANGS, resolve_lang, t
 
-__version__ = "0.1.0"
+__version__ = "0.1.2"
 
 
 class UsageError(Exception):
