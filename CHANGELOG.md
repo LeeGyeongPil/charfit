@@ -5,6 +5,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-24
+
+### Changed
+- README (English and Korean): the evaluation table now shows the measured values for the final skill (baseline 2/5, mean gain +0.32).
+- README: `uv run pytest` shows the pass count, the `--file` trailing-newline behaviour is explained next to the 741-character example, and the "no files written" note mentions `__pycache__`.
+- CI: each job writes a diagnostics summary (step outcomes and the pytest log tail).
+- Package and plugin metadata version is 0.1.1; the skill and script code are unchanged from 0.1.0 (the script still reports `0.1.0` in `--version`).
+
 ## [0.1.0] - 2026-11-23
 
 ### Added
