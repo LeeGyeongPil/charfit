@@ -19,26 +19,50 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python }}
-      - run: uv sync --locked
-      - run: uv run pytest -q
-      - name: every bundled script answers --help
+      - id: sync
+        run: uv sync --locked
+      - id: tests
+        shell: bash
+        run: uv run pytest -q 2>&1 | tee pytest.log
+      - id: help
+        name: every bundled script answers --help
         run: |
           for f in skills/*/scripts/*.py; do
             case "$(basename "$f")" in _*) continue ;; esac
             uv run python "$f" --help > /dev/null
           done
+      # Diagnostics: record which step failed and the tail of the pytest log in the job summary.
+      - name: diagnostics summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### scripts (Python ${{ matrix.python }})"
+            echo "- uv: $(uv --version 2>&1 || echo missing)"
+            echo "- python: $(uv run python --version 2>&1 || echo missing)"
+            echo "- uv sync: ${{ steps.sync.outcome }}"
+            echo "- pytest: ${{ steps.tests.outcome }}"
+            echo "- --help: ${{ steps.help.outcome }}"
+            if [ -f pytest.log ]; then
+              echo '```'
+              tail -n 40 pytest.log
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
   spec:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
-      - name: Agent Skills spec (skills-ref, pinned)
+      - id: specref
+        name: Agent Skills spec (skills-ref, pinned)
         run: |
           for d in skills/*/; do
             uvx --from "git+https://github.com/agentskills/agentskills@83021e2be457a9b6679148719c1f6074f0ad975e#subdirectory=skills-ref" \
               skills-ref validate "$d"
           done
-      - name: plugin manifests are valid JSON with matching names
+      - id: manifests
+        name: plugin manifests are valid JSON with matching names
         run: |
           python3 - <<'PY'
           import json, pathlib
@@ -49,3 +73,13 @@ jobs:
           assert [p["name"] for p in market["plugins"]] == [plugin["name"]]
           print("manifests ok:", plugin["name"], plugin["version"])
           PY
+      - name: diagnostics summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### spec"
+            echo "- uv: $(uv --version 2>&1 || echo missing)"
+            echo "- skills-ref validate: ${{ steps.specref.outcome }}"
+            echo "- manifests: ${{ steps.manifests.outcome }}"
+          } >> "$GITHUB_STEP_SUMMARY"
