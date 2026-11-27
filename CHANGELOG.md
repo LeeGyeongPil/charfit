@@ -3,7 +3,17 @@
 All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.3] - 2026-11-27
+
+### Changed
+- Evaluation set: the segment-start task (`task-sms-split-points`) is replaced by `task-kr-lms-notice`, a long Korean LMS notice with three Hangul syllables outside KS X 1001 that Python's `euc_kr` and `cp949` codecs accept; the answer is each character with its position. The Korean task prompts now ask the way a user does ("국내 통신사") instead of naming the strict EUC-KR rule, and the graders accept more wordings of the same exact values (`≥2 segments`, `more than 1 segment`, "발송이 안 되는 것").
+- `SKILL.md`: report each total next to the script's own label, and name every Korean culprit with its `index` even when Python's codecs accept the text. No script change.
+- Package, plugin metadata and the script's `--version` report 0.1.3.
+
+### Known limitations
+- The task case `task-kr-lms-notice` is already solved without the skill (baseline 1.0, delta 0.0); it stays as a regression case.
+- `SKILL.md` step 5 calls `after` the cleaned text; in `fix-sms --json` the cleaned text is `candidate` and `after` is its measurement.
+- `SKILL.md` step 4 mentions `kr_class`, which only `--jsonl` items carry; for a single text `value: null` means the text cannot be sent.
 
 ## [0.1.2] - 2026-11-24
 

@@ -1,6 +1,6 @@
 [project]
 name = "charfit-dev"
-version = "0.1.2"
+version = "0.1.3"
 description = "Development environment for the charfit agent skill (tests only; the skill script has no dependencies)."
 requires-python = ">=3.9"
 license = { text = "MIT" }

@@ -1,6 +1,6 @@
 {
   "name": "charfit",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Agent skill that counts SMS segments and billed units for single texts and batches, finds segment start positions, cleans text to GSM-7, and checks Korean SMS/LMS bytes in strict EUC-KR, with the exact character that causes an overflow. UTF-16/UTF-8 limits and an X approximation are extra profiles.",
   "author": { "name": "LeeGyeongPil" },
   "license": "MIT",
