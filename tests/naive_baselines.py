@@ -23,11 +23,25 @@ values that the shortcuts get wrong.
 N7-N9 are the counts an agent writes for itself when the script is missing or broken: the segment loop
 is easy to get right, the alphabet table is not. A task case must fail on them, otherwise it does not
 show that the answer came from the script.
+
+X weighted length (x-post). A strong model knows the published weights (1 for Latin and the punctuation
+ranges, 2 for Hangul and CJK, 23 per link) and writes them as code. What it gets wrong is how
+twitter-text decides what is a link and what is one emoji:
+
+  X1 x_codepoint_weights  NFC and the weight ranges are right, links are only http(s):// URLs and every
+                          code point of an emoji sequence is weighed alone (a keycap is 1 + 2 + 2 = 5, not 2)
+  X2 x_bare_symbol_emoji  exact links and emoji sequences, but a bare (C) or (R) sign counts as an emoji (2);
+                          twitter-text 3.1.0 counts it as Latin-1 (1) unless U+FE0F follows
+  X3 x_no_cctld           exact emoji, links are http(s)://, www. and bare names with a generic TLD only;
+                          file names that end in a country code (README.md, setup.py, install.sh) stay text
+  X4 x_without_nfc        exact rules but no NFC normalisation: Hangul saved as jamo (NFD) counts 1 per jamo
 """
 from __future__ import annotations
 
 import math
-from typing import Any, Callable, Dict, List
+import re
+import unicodedata
+from typing import Any, Callable, Dict, List, Optional, Pattern
 
 from conftest import rules
 
@@ -231,3 +245,62 @@ def kr_totals(texts: List[str], classify: Callable[[str], str]) -> Dict[str, int
     for t in texts:
         out[classify(t)] += 1
     return out
+
+
+# X1-X4 -------------------------------------------------------------------------------------
+SCHEME_URL_RE = re.compile(r"https?://[\x21-\x7e]+")
+# the script's link pattern with the generic TLDs only (no two-letter country codes)
+GTLD_ONLY_URL_RE = re.compile(rules._URL_RE.pattern.replace(rules._TLDS, rules._GTLDS), re.IGNORECASE)
+# the script's emoji pattern plus a bare (C) or (R) sign
+EMOJI_WITH_BARE_SYMBOLS_RE = re.compile(rules._EMOJI_RE.pattern + "|[©®]")
+NO_EMOJI_RE = re.compile("(?!)")
+
+
+def _x_weight(text: str, url_re: Pattern[str], emoji_re: Pattern[str], nfc: bool = True) -> int:
+    """The script's counting loop with the link and emoji patterns swapped in."""
+    if nfc:
+        text = unicodedata.normalize("NFC", text)
+    total, pos, rest = 0, 0, []
+    for m in url_re.finditer(text):
+        end = m.end()
+        while end > m.start() and text[end - 1] in rules._URL_TRAILING:
+            end -= 1
+        rest.append(text[pos:m.start()])
+        total += rules.X_URL_WEIGHT
+        pos = end
+    rest.append(text[pos:])
+    remainder = "".join(rest)
+    total += rules.X_EMOJI_WEIGHT * len(emoji_re.findall(remainder))
+    for ch in emoji_re.sub("", remainder):
+        total += 1 if any(a <= ord(ch) <= b for a, b in rules.X_LIGHT_RANGES) else 2
+    return total
+
+
+def x_codepoint_weights(text: str) -> int:
+    return _x_weight(text, SCHEME_URL_RE, NO_EMOJI_RE)
+
+
+def x_bare_symbol_emoji(text: str) -> int:
+    return _x_weight(text, rules._URL_RE, EMOJI_WITH_BARE_SYMBOLS_RE)
+
+
+def x_no_cctld(text: str) -> int:
+    return _x_weight(text, GTLD_ONLY_URL_RE, rules._EMOJI_RE)
+
+
+def x_without_nfc(text: str) -> int:
+    return _x_weight(text, rules._URL_RE, rules._EMOJI_RE, nfc=False)
+
+
+def x_exact(text: str) -> int:
+    """Sanity anchor: with the script's own patterns the loop gives the script's number."""
+    return _x_weight(text, rules._URL_RE, rules._EMOJI_RE)
+
+
+X_VARIANTS: Dict[str, Callable[[str], int]] = {
+    "X1": x_codepoint_weights, "X2": x_bare_symbol_emoji, "X3": x_no_cctld, "X4": x_without_nfc,
+}
+
+
+def over_limit(weighted: int) -> Optional[int]:
+    return max(0, weighted - rules.X_LIMIT)
