@@ -8,7 +8,7 @@ resolution-markers = [
 
 [[package]]
 name = "charfit-dev"
-version = "0.1.4"
+version = "0.1.5"
 source = { virtual = "." }
 
 [package.dev-dependencies]

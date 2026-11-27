@@ -3,6 +3,14 @@
 All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.1.5] - 2026-11-27
+
+### Changed
+- Evaluation set: `task-sms-locales` and `task-kr-lms-notice` are replaced by two X tasks, `task-x-release-posts` (three release-week posts in a JSONL file) and `task-x-ko-study` (a Korean post saved in NFD). Their answers depend on rules a model does not write down by itself: file names that end in a country code (`README.md`, `setup.py`, `install.sh`) are 23-weight links on X while `src/main.rs` or `config.yml` are not, an emoji sequence (keycap, flag, skin tone, joined sequence) weighs 2, a bare `©` weighs 1, and the text is normalised to NFC first. Every graded value equals the official twitter-text 3.1.0 library. The SMS and Korean tasks measured the same with and without the skill for a strong model, because it writes those rules correctly in Python.
+- The batch example `templates.jsonl` moved to `docs/examples/templates.jsonl` (same content).
+- `SKILL.md`: step 5 now says that `candidate` is the cleaned text and `after` its measurement; step 3 says where an X batch keeps each post's weighted length; the X paragraph says to quote the script's number and links instead of recounting.
+- Package, plugin metadata and the script's `--version` report 0.1.5.
+
 ## [0.1.4] - 2026-11-27
 
 ### Changed
