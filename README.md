@@ -205,6 +205,8 @@ $ python3 skills/charfit/scripts/charfit.py check --profile sms --json "Tu códi
 
 Exit codes: `0` every checked item passes, `1` a limit is exceeded (or, for `fix-sms`, an item is still UCS-2), `2` usage or input error (one `charfit: error:` line, no traceback).
 
+Input files must be UTF-8. If a file is not, `charfit` exits with `2` and says how to fix it: save the file as UTF-8, or convert it with `iconv -f <encoding> -t UTF-8`. A UTF-16 byte order mark is named in the message.
+
 ## Language and options
 
 | Setting | Values | Notes |
@@ -221,8 +223,8 @@ Exit codes: `0` every checked item passes, `1` a limit is exceeded (or, for `fix
 | Triggers when it should | 12/12 |
 | Stays quiet when it should not | 12/12 |
 | Tasks solved with the skill | 5/5 |
-| Tasks solved without it (baseline) | 1/5 |
-| Mean score gain (Δ) | +0.42 |
+| Tasks solved without it (baseline) | 2/5 |
+| Mean score gain (Δ) | +0.35 |
 | Tasks that catch a broken script | 5/5 |
 | Codex CLI | not verified |
 

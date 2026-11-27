@@ -209,6 +209,8 @@ $ python3 skills/charfit/scripts/charfit.py check --profile sms --json "Tu códi
 
 종료 코드: `0` 모든 항목 통과, `1` 한도 초과(`fix-sms` 는 정리 뒤에도 UCS-2 항목이 남음), `2` 사용법·입력 오류(`charfit: error:` 한 줄, 트레이스백 없음).
 
+입력 파일은 UTF-8 이어야 합니다. 아니면 `charfit` 이 종료 코드 `2` 로 멈추고 해결 방법을 알려 줍니다. 파일을 UTF-8 로 저장하거나 `iconv -f <인코딩> -t UTF-8` 로 변환하세요. UTF-16 바이트 순서 표시(BOM)가 있으면 메시지에 그 사실이 나옵니다.
+
 ## 언어와 옵션
 
 | 설정 | 값 | 비고 |
@@ -225,8 +227,8 @@ $ python3 skills/charfit/scripts/charfit.py check --profile sms --json "Tu códi
 | 필요할 때 불림 | 12/12 |
 | 필요 없을 때 안 불림 | 12/12 |
 | 스킬로 푼 작업 | 5/5 |
-| 스킬 없이 푼 작업(기준선) | 1/5 |
-| 평균 점수 차이(Δ) | +0.42 |
+| 스킬 없이 푼 작업(기준선) | 2/5 |
+| 평균 점수 차이(Δ) | +0.35 |
 | 가짜 스크립트를 잡아낸 비율 | 5/5 |
 | Codex CLI | 미검증 |
 
