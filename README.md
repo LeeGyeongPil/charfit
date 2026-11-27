@@ -57,7 +57,7 @@ Ask your agent in plain language. These requests are from the skill's trigger ev
 - "Make this promo text GSM-7 safe; replace the smart quotes and ellipsis if needed: ..."
 - "이 문구 문자로 보내면 몇 건으로 나가? 이모지 들어가도 괜찮아?" (How many messages will this go out as? Is an emoji OK?)
 
-For a file of templates, add the file name and the agent runs the batch mode. The commands below run from the repository root; the sample files are in `evals/fixtures/`.
+For a file of templates, add the file name and the agent runs the batch mode. The commands below run from the repository root; the sample files are in `evals/fixtures/` and `docs/examples/`.
 
 **1. A batch of templates** (`check --jsonl`; exit code 0 = every item passes, 1 = at least one does not):
 
@@ -82,7 +82,7 @@ Total SMS: 41 segments billed; 12 GSM-7 items, 12 UCS-2 items, 14 items with 2+ 
 **2. Where do the segments start?** (`check --profile sms:6` allows up to 6 segments):
 
 ```
-$ python3 skills/charfit/scripts/charfit.py check --profile sms:6 --file evals/fixtures/task-sms-split-points/newsletter.txt --lang en
+$ python3 skills/charfit/scripts/charfit.py check --profile sms:6 --file docs/examples/newsletter.txt --lang en
 PASS sms:6: 6 SMS segment(s) (limit 6)
   encoding GSM-7, 765 billed units, 153 per segment
   1 more segment(s) than 765/153 suggests: a 2-unit character is never split across segments
@@ -221,12 +221,12 @@ Exit codes: `0` every checked item passes, `1` a limit is exceeded (or, for `fix
 | Triggers when it should | 12/12 |
 | Stays quiet when it should not | 12/12 |
 | Tasks solved with the skill | 5/5 |
-| Tasks solved without it (baseline) | 2/5 |
-| Mean score gain (Δ) | +0.28 |
+| Tasks solved without it (baseline) | 1/5 |
+| Mean score gain (Δ) | +0.42 |
 | Tasks that catch a broken script | 5/5 |
 | Codex CLI | not verified |
 
-Measured 2026-11-24 with Claude Code 2.1.322 · sonnet · 3 runs per case · codex-cli 0.154.0
+Measured 2026-11-27 with Claude Code 2.1.332 · sonnet · 3 runs per case · codex-cli 0.154.0
 <!-- skill-eval:end -->
 
 ## How it works
@@ -279,7 +279,7 @@ The full rules are in [`skills/charfit/references/rules.md`](skills/charfit/refe
 uv sync && uv run pytest
 ```
 
-The `evals/` folder holds 12 trigger cases, 12 not-triggered cases (8 near misses) and 5 task cases with fixtures (the files used above). Run them with `claude plugin eval` (see the Claude Code documentation).
+The `evals/` folder holds 12 trigger cases, 12 not-triggered cases (8 near misses) and 5 task cases with fixtures (the files the cases run against). Run them with `claude plugin eval` (see the Claude Code documentation).
 
 ## Sources
 

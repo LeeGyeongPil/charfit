@@ -57,7 +57,7 @@ python3 skills/charfit/scripts/charfit.py count "It’s ready…"
 - "Make this promo text GSM-7 safe; replace the smart quotes and ellipsis if needed: ..."
 - "이 문구 문자로 보내면 몇 건으로 나가? 이모지 들어가도 괜찮아?"
 
-템플릿 파일이 있으면 파일 이름을 함께 주세요. 에이전트가 묶음 모드로 실행합니다. 아래 명령은 저장소 루트에서 실행하고, 샘플 파일은 `evals/fixtures/` 에 있습니다.
+템플릿 파일이 있으면 파일 이름을 함께 주세요. 에이전트가 묶음 모드로 실행합니다. 아래 명령은 저장소 루트에서 실행하고, 샘플 파일은 `evals/fixtures/` 와 `docs/examples/` 에 있습니다.
 
 **1. 템플릿 묶음** (`check --jsonl`; 종료 코드 0 = 모든 항목 통과, 1 = 통과 못 한 항목이 있음):
 
@@ -86,7 +86,7 @@ $ python3 skills/charfit/scripts/charfit.py check --profile sms --jsonl evals/fi
 **2. 조각은 어디서 시작하나요?** (`check --profile sms:6` 은 최대 6건까지 허용):
 
 ```
-$ python3 skills/charfit/scripts/charfit.py check --profile sms:6 --file evals/fixtures/task-sms-split-points/newsletter.txt --lang ko
+$ python3 skills/charfit/scripts/charfit.py check --profile sms:6 --file docs/examples/newsletter.txt --lang ko
 통과 sms:6: SMS 건수 6 (한도 6)
   인코딩 GSM-7, 과금 765칸, 건당 153칸
   765/153 나눗셈보다 1건 많음: 2칸 문자는 두 건에 걸쳐 나뉘지 않는다
@@ -225,12 +225,12 @@ $ python3 skills/charfit/scripts/charfit.py check --profile sms --json "Tu códi
 | 필요할 때 불림 | 12/12 |
 | 필요 없을 때 안 불림 | 12/12 |
 | 스킬로 푼 작업 | 5/5 |
-| 스킬 없이 푼 작업(기준선) | 2/5 |
-| 평균 점수 차이(Δ) | +0.28 |
+| 스킬 없이 푼 작업(기준선) | 1/5 |
+| 평균 점수 차이(Δ) | +0.42 |
 | 가짜 스크립트를 잡아낸 비율 | 5/5 |
 | Codex CLI | 미검증 |
 
-Claude Code 2.1.322 · sonnet · 케이스마다 3회 · 2026-11-24 측정 · codex-cli 0.154.0
+Claude Code 2.1.332 · sonnet · 케이스마다 3회 · 2026-11-27 측정 · codex-cli 0.154.0
 <!-- skill-eval:end -->
 
 ## 동작 원리
@@ -283,7 +283,7 @@ flowchart LR
 uv sync && uv run pytest
 ```
 
-`evals/` 폴더에는 발동 케이스 12개, 미발동 케이스 12개(근접 8개), 작업 케이스 5개와 픽스처(위에서 쓴 파일)가 있습니다. `claude plugin eval` 로 돌립니다(Claude Code 문서 참고).
+`evals/` 폴더에는 발동 케이스 12개, 미발동 케이스 12개(근접 8개), 작업 케이스 5개와 픽스처(케이스가 쓰는 파일)가 있습니다. `claude plugin eval` 로 돌립니다(Claude Code 문서 참고).
 
 ## 출처
 
