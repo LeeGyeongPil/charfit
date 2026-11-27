@@ -142,3 +142,15 @@ def test_sms_profile_with_more_segments_allowed():
     assert r["pass"] and r["value"] == 2 and r["limit"] == 2
     r = rules.check_text("a" * 200, "sms")["results"][0]
     assert not r["pass"] and r["over"] == 1
+
+
+def test_readme_newsletter_sample_keeps_its_segment_starts():
+    """docs/examples/newsletter.txt (the README example, formerly an eval fixture): 765 units is 5 x 153,
+    but a two-unit character never straddles a border, so it needs 6 segments; values cross-checked
+    against an external SMS segment calculator on 2026-11-23."""
+    from conftest import ROOT
+    text = (ROOT / "docs" / "examples" / "newsletter.txt").read_text(encoding="utf-8").rstrip("\n")
+    r = sms(text)
+    assert (r["encoding"], r["units"], r["segments"], r["boundary_extra"]) == ("GSM-7", 765, 6, 1)
+    assert r["segment_starts"] == [0, 147, 294, 443, 592, 739]
+    assert "\N{GREEK CAPITAL LETTER OMEGA}" in text and "\N{SECTION SIGN}" in text

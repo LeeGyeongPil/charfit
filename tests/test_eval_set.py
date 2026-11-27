@@ -7,9 +7,11 @@ Design rules (plan v2, 7.1) checked here:
 * an answer off by one fails; the same values in English, Korean, a table, a list or the script's own
   wording pass; graded numbers do not collide with each other or with numbers in the prompt or fixture;
 * every rule mutation of the script changes at least one graded value; lowercase ç changes none;
-* a count the agent writes for itself when the script is broken (N1, N2, N6-N9: a wrong alphabet table,
-  division, unit offsets, an over-eager cleanup) gets at least two of the three graded values of the
-  segment tasks wrong, so such a run scores below the pass mark even with the script-ran grader.
+* a count the agent writes for itself when the script is broken (N1, N2, N7, N9, N10: a wrong alphabet
+  table, division, an over-eager cleanup; N3, N4: Python's euc_kr or cp949 codec) gets at least two of the
+  three graded values wrong, so such a run scores below the pass mark even with the script-ran grader;
+* the Korean prompts say what a user says ("국내 통신사"), not the rule (strict KS X 1001): knowing that
+  rule is what the skill adds, and the Python codecs a model reaches for without it get the values wrong.
 """
 from __future__ import annotations
 
@@ -26,7 +28,7 @@ from conftest import ROOT, clean_env, rules, run_cli, run_json
 
 EVALS = ROOT / "evals"
 FIXTURES = EVALS / "fixtures"
-NEW_TASKS = ["task-kr-batch", "task-sms-fix-batch", "task-sms-locales", "task-sms-split-points"]
+NEW_TASKS = ["task-kr-batch", "task-kr-lms-notice", "task-sms-fix-batch", "task-sms-locales"]
 
 
 def front(path: Path) -> dict:
@@ -64,8 +66,8 @@ def jsonl_items(case: str, name: str) -> List[dict]:
     return [dict(json.loads(l), line=n) for n, l in enumerate(lines, 1) if l.strip()]
 
 
-def newsletter() -> str:
-    text = (FIXTURES / "task-sms-split-points" / "newsletter.txt").read_text(encoding="utf-8")
+def notice() -> str:
+    text = (FIXTURES / "task-kr-lms-notice" / "notice.txt").read_text(encoding="utf-8")
     return text[:-1] if text.endswith("\n") else text
 
 
@@ -91,6 +93,16 @@ def test_no_task_grades_x():
     for case in cases("task-"):
         assert not case.name.startswith("task-x-")
         assert not re.search(r"x-post|\bX post|\bon X\b|tweet|twitter|\b280\b", body(case / "prompt.md"), re.I), case
+
+
+def test_korean_prompts_ask_like_a_user_and_do_not_state_the_rule():
+    """The carrier rule (strict KS X 1001, so Python's codecs are wrong) is what the skill knows; a prompt
+    that spells it out lets any model answer without the skill."""
+    for case in ("task-kr-batch", "task-kr-lms-notice"):
+        text = body(EVALS / case / "prompt.md")
+        assert "국내 통신사" in text, case
+        for hint in ("KS X", "EUC", "CP949", "완성형", "엄격", "인코딩"):
+            assert hint.lower() not in text.lower(), (case, hint)
 
 
 def test_trigger_prompts_do_not_name_the_skill():
@@ -135,7 +147,7 @@ def test_fixtures_have_scale():
     assert len(jsonl_items("task-sms-locales", "templates.jsonl")) == 24
     assert len(jsonl_items("task-sms-fix-batch", "campaign.jsonl")) == 20
     assert len(jsonl_items("task-kr-batch", "notices.jsonl")) == 25
-    assert 600 <= len(newsletter()) and 650 <= rules.sms_analyze(newsletter())["units"] <= 800
+    assert 600 <= len(notice())
     for item in jsonl_items("task-sms-locales", "templates.jsonl"):
         assert 60 <= len(item["text"]) <= 200, item["id"]
 
@@ -153,15 +165,18 @@ def test_fixtures_contain_the_planned_traps():
     assert len(gsm_accents) >= 6 and len(one_latin1_accent) >= 6
     assert len(emoji_at_boundary) >= 2 and len(extension_over_160) >= 2 and len(hidden) >= 2
 
-    news = rules.sms_analyze(newsletter())
-    assert news["encoding"] == "GSM-7" and news["extension_chars"] >= 20
-    # two extension characters would straddle a segment border and start the next segment instead
-    straddling = [s for s in news["segment_starts"][1:] if newsletter()[s] in rules.GSM_EXTENSION]
-    assert len(straddling) >= 3
-    # the last straddle adds a whole segment: 765 units is 5 x 153, but the text needs 6 segments
-    assert news["units"] == 765 and news["segments"] == 6 and news["boundary_extra"] == 1
-    # GSM-7 characters that hand-written tables tend to miss: Greek capital omega (0x15), section sign (0x5F)
-    assert "\N{GREEK CAPITAL LETTER OMEGA}" in newsletter() and "\N{SECTION SIGN}" in newsletter()
+    # the long LMS notice: three syllables outside KS X 1001, each once, that Python's codecs accept, so
+    # euc_kr and cp949 both say "fits in 2,000 bytes" and checking each character with euc_kr finds nothing
+    text = notice()
+    strict = rules.kr_analyze(text)
+    assert [c["reason"] for c in strict["culprits"]] == ["not_in_ks_x_1001"] * 3
+    assert all(text.count(c["char"]) == 1 for c in strict["culprits"])
+    assert len(text.encode("euc_kr")) <= 2000 and len(text.encode("cp949")) <= 2000
+    for ch in text:
+        ch.encode("euc_kr")  # raises nothing: the per-character shortcut sees no problem
+    # symbols that look exotic but are in KS X 1001 and must not be reported
+    for ch in "※▶①☎·":
+        assert ch in text and len(ch.encode("euc_kr")) == 2
 
     campaign = [rules.fix_sms(i["text"]) for i in jsonl_items("task-sms-fix-batch", "campaign.jsonl")]
     regrowth = [r for r in campaign if r["after"]["encoding"] == "GSM-7" and r["after"]["units"] > 160
@@ -200,8 +215,9 @@ def test_fixtures_contain_the_planned_traps():
 GRADED = {
     "task-sms-locales": {"value-1": ("totals.sms.segments", 41), "value-2": ("totals.sms.ucs2", 12),
                          "value-3": ("totals.sms.multi_segment", 14)},
-    "task-sms-split-points": {"value-1": ("results.0.value", 6), "value-2": ("results.0.segment_starts.2", 294),
-                              "value-3": ("results.0.segment_starts.5", 739)},
+    "task-kr-lms-notice": {"value-1": ("results.0.culprits.0.index", 198),
+                           "value-2": ("results.0.culprits.1.index", 221),
+                           "value-3": ("results.0.culprits.2.index", 263)},
     "task-sms-fix-batch": {"value-1": ("totals.after.segments", 37), "value-2": ("totals.after.ucs2", 6),
                            "value-3": ("totals.before.segments", 52)},
     "task-kr-batch": {"value-1": ("totals.kr_class.SMS", 7), "value-2": ("totals.kr_class.LMS", 12),
@@ -209,7 +225,7 @@ GRADED = {
 }
 COMMANDS = {
     "task-sms-locales": ["check", "--profile", "sms", "--jsonl", "templates.jsonl"],
-    "task-sms-split-points": ["check", "--profile", "sms:6", "--file", "newsletter.txt"],
+    "task-kr-lms-notice": ["check", "--profile", "kr-lms", "--file", "notice.txt"],
     "task-sms-fix-batch": ["fix-sms", "--jsonl", "campaign.jsonl"],
     "task-kr-batch": ["check", "--profile", "kr-sms", "--jsonl", "notices.jsonl"],
 }
@@ -238,8 +254,8 @@ def script_values(case: str) -> Dict[str, int]:
     """Same values computed in-process, so a monkeypatched rule shows up here."""
     if case == "task-sms-locales":
         data = rules.check_many(jsonl_items(case, "templates.jsonl"), "sms")
-    elif case == "task-sms-split-points":
-        data = rules.check_text(newsletter(), "sms:6")
+    elif case == "task-kr-lms-notice":
+        data = rules.check_text(notice(), "kr-lms")
     elif case == "task-sms-fix-batch":
         data = rules.fix_many(jsonl_items(case, "campaign.jsonl"))
     else:
@@ -274,20 +290,34 @@ def _locales(v):
         "Total SMS: %d segments billed; 12 GSM-7 items, %d UCS-2 items, %d items with 2+ segments" % (s, u, m),
         "Of the 24 templates, %d of 24 are UCS-2 and %d need two or more segments; together they bill %d segments."
         % (u, m, s),
+        # wordings a strong model used in the measured runs
+        "Billed: %d segments. UCS\N{NON-BREAKING HYPHEN}2: %d templates. %d templates need ≥2 segments." % (s, u, m),
+        "%d segments in total; %d are UCS-2; %d need more than 1 segment." % (s, u, m),
+        "- Total billed SMS segments: %d\n- UCS-2 templates: %d\n- Templates with >1 segment: %d" % (s, u, m),
+        "총 %d건, UCS-2 %d개, 2조각 이상 %d개" % (s, u, m),
     ]
 
 
-def _split(v):
-    n, p3, last = v["value-1"], v["value-2"], v["value-3"]
+def _notice(v):
+    a, b, c = v["value-1"], v["value-2"], v["value-3"]
+    if None in (a, b, c):
+        # what a run without the strict rule says: Python's euc_kr or cp949 accepts every character
+        return [
+            "notice.txt 는 EUC-KR 1,635바이트라 LMS 2,000바이트 안에 들어갑니다. 문제 되는 글자는 없습니다.",
+            "CP949 기준 1,617바이트, 똠·샾·뀰 도 2바이트로 인코딩되므로 그대로 보낼 수 있습니다.",
+            "It fits: 1,635 bytes in EUC-KR (limit 2,000), and every character encodes, so nothing blocks it.",
+        ]
     return [
-        "It goes out as %d segments. The third segment starts at index %d and the last one at index %d (0-based)."
-        % (n, p3, last),
-        "총 %d조각으로 나가고, 3번째 조각은 %d번째 문자(0부터), 마지막 조각은 %d번째 문자에서 시작합니다." % (n, p3, last),
-        "| Item | Value |\n|---|---|\n| Segments | %d |\n| Part 3 starts at | %d |\n| Last part starts at | %d |"
-        % (n, p3, last),
-        "- Segments: %d\n- Part 3: index %d\n- Last part: index %d" % (n, p3, last),
-        "PASS sms:6: %d SMS segment(s) (limit 6)\n  part 3: index %d «izes} at €3/»\n  part %d: index %d «€1»"
-        % (n, p3, n, last),
+        "보낼 수 없습니다. KS X 1001 밖 글자 3개 때문입니다: 위치 %d '똠', 위치 %d '샾', 위치 %d '뀰'." % (a, b, c),
+        "It cannot be sent: '똠' (U+B620) at index %d, '샾' (U+C0FE) at index %d and '뀰' (U+B030) at index %d "
+        "are outside KS X 1001." % (a, b, c),
+        "| 글자 | 코드 | 위치 |\n|---|---|---|\n| 똠 | U+B620 | %d |\n| 샾 | U+C0FE | %d |\n| 뀰 | U+B030 | %d |"
+        % (a, b, c),
+        "- 똠 (똠얌꿍)\n  - 위치: %d\n- 샾 (꽃샾)\n  - 위치: %d\n- 뀰 (제주 하우스 뀰)\n  - 위치: %d" % (a, b, c),
+        "실패 kr-lms: 바이트 계산 불가 (한도 2000)\n  - 위치 %d '똠' U+B620: KS X 1001 밖이라 EUC-KR 불가(CP949 바이트: 2)\n"
+        "  - 위치 %d '샾' U+C0FE: KS X 1001 밖이라 EUC-KR 불가(CP949 바이트: 2)\n"
+        "  - 위치 %d '뀰' U+B030: KS X 1001 밖이라 EUC-KR 불가(CP949 바이트: 2)" % (a, b, c),
+        "문제 글자는 %d, %d, %d번째 위치(0부터)의 똠, 샾, 뀰 입니다." % (a, b, c),
     ]
 
 
@@ -314,11 +344,13 @@ def _kr(v):
         "- SMS: %d\n- LMS: %d\n- FAIL (발송 실패): %d" % (s, l, f),
         "합계 국내 구분: SMS %d개, LMS %d개, OVER 0개(2,000바이트 초과), FAIL %d개(발송 실패)" % (s, l, f),
         "SMS 90바이트 이하 %d개, LMS 2,000바이트 이하 %d개, 25개 중 실패 %d개" % (s, l, f),
+        "SMS로 나가는 것 %d개, LMS로 나가는 것 %d개, 글자 때문에 발송이 안 되는 것 %d개야." % (s, l, f),
+        "| 구분 | 개수 |\n|---|---|\n| SMS | %d |\n| LMS | %d |\n| 발송 안 됨 | %d |" % (s, l, f),
     ]
 
 
 ANSWERS: Dict[str, Callable[[Dict[str, int]], List[str]]] = {
-    "task-sms-locales": _locales, "task-sms-split-points": _split, "task-sms-fix-batch": _fix, "task-kr-batch": _kr,
+    "task-sms-locales": _locales, "task-kr-lms-notice": _notice, "task-sms-fix-batch": _fix, "task-kr-batch": _kr,
 }
 
 
@@ -367,11 +399,12 @@ def naive_values(case: str, variant: str) -> Dict[str, int]:
         texts = [i["text"] for i in jsonl_items(case, "templates.jsonl")]
         t = nb.sms_totals(texts, {"N1": nb.latin1_is_gsm, "N2": nb.ceil_split}[variant])
         return {"value-1": t["segments"], "value-2": t["ucs2"], "value-3": t["multi_segment"]}
-    if case == "task-sms-split-points":
-        r = {"N1": nb.latin1_is_gsm, "N2": nb.ceil_split, "N6": nb.unit_offsets, "N7": nb.snippet_table,
-             "N8": nb.greek_not_gsm, "N10": nb.extension_one_unit}[variant](newsletter())
-        # the question asks for the third and the last segment
-        return {"value-1": r["segments"], "value-2": r["segment_starts"][2], "value-3": r["segment_starts"][-1]}
+    if case == "task-kr-lms-notice":
+        # Python's euc_kr (N3) or cp949 (N4), whole text or one character at a time: nothing to report
+        codec = {"N3": "euc_kr", "N4": "cp949"}[variant]
+        bad = [i for i, ch in enumerate(notice()) if nb._kr_bytes(ch, codec) is None]
+        found = bad + [None] * (3 - len(bad))
+        return {"value-1": found[0], "value-2": found[1], "value-3": found[2]}
     if case == "task-sms-fix-batch":
         texts = [i["text"] for i in jsonl_items(case, "campaign.jsonl")]
         t = nb.fix_totals(texts, {"N1": nb.fix_n1, "N2": nb.fix_ceil, "N5": nb.fix_without_regrowth,
@@ -387,18 +420,14 @@ def naive_values(case: str, variant: str) -> Dict[str, int]:
 DESIGNATED = [
     ("task-sms-locales", "N1", ["value-1", "value-2", "value-3"]),
     ("task-sms-locales", "N2", ["value-1"]),
-    ("task-sms-split-points", "N6", ["value-2", "value-3"]),
-    ("task-sms-split-points", "N2", ["value-1", "value-2", "value-3"]),
-    ("task-sms-split-points", "N1", ["value-1", "value-2", "value-3"]),
-    ("task-sms-split-points", "N7", ["value-1", "value-2", "value-3"]),
-    ("task-sms-split-points", "N8", ["value-1", "value-2", "value-3"]),
+    ("task-kr-lms-notice", "N3", ["value-1", "value-2", "value-3"]),
+    ("task-kr-lms-notice", "N4", ["value-1", "value-2", "value-3"]),
     ("task-sms-fix-batch", "N2", ["value-1", "value-3"]),
     ("task-sms-fix-batch", "N5", ["value-1"]),
     ("task-sms-fix-batch", "N1", ["value-1", "value-2"]),
     ("task-sms-fix-batch", "N7", ["value-1", "value-2"]),
     ("task-sms-fix-batch", "N9", ["value-1", "value-2"]),
     ("task-sms-fix-batch", "N10", ["value-1", "value-3"]),
-    ("task-sms-split-points", "N10", ["value-1", "value-2", "value-3"]),
     ("task-kr-batch", "N3", ["value-1", "value-3"]),
     ("task-kr-batch", "N4", ["value-1", "value-3"]),
 ]
@@ -418,11 +447,8 @@ def test_naive_baselines_are_wrong_where_the_plan_says():
     """The exact naive numbers, so a fixture edit that weakens a trap shows up as a diff."""
     assert naive_values("task-sms-locales", "N1") == {"value-1": 34, "value-2": 5, "value-3": 7}
     assert naive_values("task-sms-locales", "N2") == {"value-1": 38, "value-2": 12, "value-3": 14}
-    assert naive_values("task-sms-split-points", "N2") == {"value-1": 5, "value-2": 295, "value-3": 593}
-    assert naive_values("task-sms-split-points", "N6") == {"value-1": 6, "value-2": 306, "value-3": 765}
-    # a table that misses the Greek capitals or the section sign makes the whole newsletter UCS-2
-    for variant in ("N1", "N7", "N8"):
-        assert naive_values("task-sms-split-points", variant) == {"value-1": 12, "value-2": 134, "value-3": 737}
+    for variant in ("N3", "N4"):
+        assert naive_values("task-kr-lms-notice", variant) == {"value-1": None, "value-2": None, "value-3": None}
     assert naive_values("task-sms-fix-batch", "N2") == {"value-1": 33, "value-2": 6, "value-3": 50}
     assert naive_values("task-sms-fix-batch", "N5")["value-1"] == 33
     assert naive_values("task-sms-fix-batch", "N1") == {"value-1": 34, "value-2": 3, "value-3": 52}
@@ -432,7 +458,8 @@ def test_naive_baselines_are_wrong_where_the_plan_says():
 
 # (case, variants) a hand-made count the agent may fall back to; each must sink the case
 SELF_COUNTS = {
-    "task-sms-split-points": ["N1", "N2", "N6", "N7", "N8", "N10"],
+    "task-kr-batch": ["N3", "N4"],
+    "task-kr-lms-notice": ["N3", "N4"],
     "task-sms-fix-batch": ["N1", "N2", "N7", "N9", "N10"],
 }
 
@@ -486,14 +513,6 @@ def _unit_cut_starts(text, real):
     return starts
 
 
-def _starts_as_units(mp):
-    def unit_starts(text):
-        out = dict(REAL_SMS(text))
-        out["segment_starts"] = [k * out["per_segment"] for k in range(out["segments"])]
-        return out
-    mp.setattr(rules, "sms_analyze", unit_starts)
-
-
 def _no_reanalysis(mp):
     def stale(text):
         out = dict(REAL_FIX(text))
@@ -517,14 +536,14 @@ MUTATIONS = {
     "extension-one-unit": lambda mp: (mp.setattr(rules, "GSM_BASIC", rules.GSM_BASIC + rules.GSM_EXTENSION),
                                       mp.setattr(rules, "GSM_EXTENSION", "")),
     "no-boundary-rule": _no_boundary_rule,
-    "starts-as-units": _starts_as_units,
     "no-reanalysis-after-cleanup": _no_reanalysis,
     "ellipsis-one-unit": lambda mp: mp.setitem(rules._SIMPLE, "…", "."),
     "lenient-euc-kr": _lenient_euc_kr,
     # the widely copied table: backtick instead of the section sign
     "snippet-gsm-table": lambda mp: mp.setattr(rules, "GSM_BASIC", rules.GSM_BASIC.replace("\N{SECTION SIGN}", "`")),
-    "greek-capitals-not-gsm": lambda mp: mp.setattr(rules, "GSM_BASIC", "".join(
-        c for c in rules.GSM_BASIC if c not in nb.GREEK_CAPITALS)),
+    # Python's cp949 instead of strict EUC-KR: extended Hangul counts as 2 bytes and is not reported
+    "cp949-as-euc-kr": lambda mp: mp.setattr(rules, "kr_analyze",
+                                             lambda text, codec="euc-kr", _real=rules.kr_analyze: _real(text, "cp949")),
 }
 
 
@@ -599,18 +618,17 @@ def test_error_task_regex_matches_the_real_error_in_both_languages():
 
 
 def test_human_output_names_the_values_the_questions_ask_for():
-    news = str(FIXTURES / "task-sms-split-points" / "newsletter.txt")
-    en = run_cli("check", "--profile", "sms:6", "--file", news, "--lang", "en").stdout
-    ko = run_cli("check", "--profile", "sms:6", "--file", news, "--lang", "ko").stdout
-    assert "part 3: index 294" in en and "part 6: index 739" in en and "6 SMS segment(s)" in en
-    assert "조각 3: 위치 294" in ko and "조각 6: 위치 739" in ko
+    en = run_cli(*cli_args("task-kr-lms-notice"), "--lang", "en").stdout
+    ko = run_cli(*cli_args("task-kr-lms-notice"), "--lang", "ko").stdout
+    assert "index 198 '똠' U+B620" in en and "index 263 '뀰' U+B030" in en and "FAIL kr-lms" in en
+    assert "위치 198 '똠'" in ko and "위치 221 '샾'" in ko and "위치 263 '뀰'" in ko
     loc = run_cli(*cli_args("task-sms-locales"), "--lang", "en").stdout
     assert "Total SMS: 41 segments billed; 12 GSM-7 items, 12 UCS-2 items, 14 items with 2+ segments" in loc
     fix = run_cli(*cli_args("task-sms-fix-batch"), "--lang", "en").stdout
     assert "Total after cleanup: 37 segments; 14 GSM-7, 6 UCS-2" in fix and "Total before cleanup: 52 segments" in fix
     kr = run_cli(*cli_args("task-kr-batch"), "--lang", "ko").stdout
     assert "SMS 7개, LMS 12개, OVER 0개(2,000바이트 초과), FAIL 6개(발송 실패)" in kr
-    for answer, case in ((en, "task-sms-split-points"), (loc, "task-sms-locales"), (fix, "task-sms-fix-batch"),
+    for answer, case in ((en, "task-kr-lms-notice"), (ko, "task-kr-lms-notice"), (loc, "task-sms-locales"), (fix, "task-sms-fix-batch"),
                          (kr, "task-kr-batch")):
         assert all(passed(case, answer).values()), case
 
