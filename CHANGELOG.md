@@ -3,6 +3,12 @@
 All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.1.4] - 2026-11-27
+
+### Changed
+- The "not valid UTF-8" error now says how to fix it (save as UTF-8, `iconv`) and names a UTF-16 byte order mark when the file has one. English and Korean.
+- README evaluation tables updated to the latest measurement.
+
 ## [0.1.3] - 2026-11-27
 
 ### Changed
