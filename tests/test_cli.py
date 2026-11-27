@@ -78,10 +78,10 @@ def test_human_output_for_check_names_the_culprit():
     (["check", "--profile", "kakao", "x"], None, "charfit: error: unknown profile 'kakao' (known: sms, sms:N, x-post, kr-sms, kr-lms, utf16:N, utf8:N, chars:N)"),
     (["check", "--profile", "utf8:abc", "x"], None, "charfit: error: profile 'utf8:abc' needs a positive integer limit"),
     (["count", "--file", "missing.txt"], None, "charfit: error: cannot read file 'missing.txt': not found"),
-    (["count", "--file", "BAD"], None, "charfit: error: '{BAD}' is not valid UTF-8 (byte offset 3)"),
+    (["count", "--file", "BAD"], None, "charfit: error: '{BAD}' is not valid UTF-8 (byte offset 3); save it as UTF-8 first, e.g. iconv -f EUC-KR -t UTF-8"),
     (["count", "x", "--file", "BAD"], None, "charfit: error: give either TEXT or --file, not both"),
     (["count"], None, "charfit: error: no input text (pass TEXT, '-' for stdin, or --file PATH)"),
-    (["count", "-"], b"ab\xff", "charfit: error: '<stdin>' is not valid UTF-8 (byte offset 2)"),
+    (["count", "-"], b"ab\xff", "charfit: error: '<stdin>' is not valid UTF-8 (byte offset 2); save it as UTF-8 first, e.g. iconv -f EUC-KR -t UTF-8"),
 ])
 def test_usage_errors_exit_2_without_traceback(args, stdin, message, tmp_path):
     bad = tmp_path / "bad.txt"
@@ -131,3 +131,12 @@ def test_human_output_caps_the_culprit_list_but_json_keeps_all():
     assert "... and 2 more" in human and human.count("not in GSM-7") == 10
     _, data = run_json("count", text)
     assert len(data["sms"]["culprits"]) == 12
+
+
+def test_utf16_bom_file_gets_a_specific_hint(tmp_path):
+    bad = tmp_path / "u16.txt"
+    bad.write_bytes("hi".encode("utf-16"))
+    proc = run_cli("count", "--file", str(bad), "--lang", "en")
+    assert proc.returncode == 2 and "looks like UTF-16" in proc.stderr and "iconv -f UTF-16" in proc.stderr
+    ko = run_cli("count", "--file", str(bad), "--lang", "ko")
+    assert ko.returncode == 2 and "UTF-16" in ko.stderr and "변환하세요" in ko.stderr

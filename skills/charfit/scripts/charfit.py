@@ -24,7 +24,7 @@ from typing import Any, Dict, List, NoReturn, Optional, Sequence
 import _charfit_rules as rules
 from _charfit_i18n import LANGS, resolve_lang, t
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 
 class UsageError(Exception):
@@ -128,6 +128,8 @@ def _decode(data: bytes, label: str, lang: str) -> str:
     try:
         return data.decode("utf-8-sig")
     except UnicodeDecodeError as e:
+        if data[:2] in (b"\xff\xfe", b"\xfe\xff"):
+            raise UsageError(t(lang, "err.not_utf8_utf16", path=label))
         raise UsageError(t(lang, "err.not_utf8", path=label, offset=e.start))
 
 
