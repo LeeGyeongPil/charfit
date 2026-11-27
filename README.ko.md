@@ -62,7 +62,7 @@ python3 skills/charfit/scripts/charfit.py count "It’s ready…"
 **1. 템플릿 묶음** (`check --jsonl`; 종료 코드 0 = 모든 항목 통과, 1 = 통과 못 한 항목이 있음):
 
 ```
-$ python3 skills/charfit/scripts/charfit.py check --profile sms --jsonl evals/fixtures/task-sms-locales/templates.jsonl --lang ko
+$ python3 skills/charfit/scripts/charfit.py check --profile sms --jsonl docs/examples/templates.jsonl --lang ko
 통과 en-otp (1번째 줄): sms SMS 건수 1 (GSM-7, 111칸, 조각 시작 위치 0)
 통과 en-ship (2번째 줄): sms SMS 건수 1 (GSM-7, 104칸, 조각 시작 위치 0)
 실패 en-pickup (3번째 줄): sms SMS 건수 2 (UCS-2, 120칸, 조각 시작 위치 0, 67)
@@ -73,7 +73,7 @@ $ python3 skills/charfit/scripts/charfit.py check --profile sms --jsonl evals/fi
 위는 실제 출력의 앞부분이고, 끝부분은 다음과 같습니다.
 
 ```
-$ python3 skills/charfit/scripts/charfit.py check --profile sms --jsonl evals/fixtures/task-sms-locales/templates.jsonl --lang ko
+$ python3 skills/charfit/scripts/charfit.py check --profile sms --jsonl docs/examples/templates.jsonl --lang ko
 ...
 합계: 항목 24개, 모든 프로필 통과 10, 통과 못 함 14
   sms: 통과 10, 통과 못 함 14
@@ -227,8 +227,8 @@ $ python3 skills/charfit/scripts/charfit.py check --profile sms --json "Tu códi
 | 필요할 때 불림 | 12/12 |
 | 필요 없을 때 안 불림 | 12/12 |
 | 스킬로 푼 작업 | 5/5 |
-| 스킬 없이 푼 작업(기준선) | 2/5 |
-| 평균 점수 차이(Δ) | +0.35 |
+| 스킬 없이 푼 작업(기준선) | 0/5 |
+| 평균 점수 차이(Δ) | +0.57 |
 | 가짜 스크립트를 잡아낸 비율 | 5/5 |
 | Codex CLI | 미검증 |
 
@@ -276,7 +276,7 @@ flowchart LR
 
 - 잘 맞는 경우: 여러 언어 템플릿의 조각 합계가 비용을 좌우할 때, 긴 공지의 분할 지점이 필요할 때, CMS 에서 붙여 넣은 캠페인 문구를 정리할 때, 엄격한 EUC-KR 을 통과해야 하는 국내 SMS/LMS.
 - 다루지 않는 것: 단어 수, LLM 토큰 수, 메시지 발송, 번역, 국가별 GSM shift 표, 수신자 부담 조각 한도(미국·캐나다), 그래핌 수 세기.
-- X 에 관한 주의: `x-post` 프로필은 X 가 공개한 가중치 규칙의 근사이고 twitter-text 3.1.0 과 대조했습니다. 이모지 시퀀스와 국가 코드 파일 이름은 모든 X 클라이언트와 같다고 보장하지 않으며, 이 도구의 중심 기능이 아닙니다.
+- X 에 관한 주의: `x-post` 프로필은 X 가 공개한 가중치 규칙의 근사이고 twitter-text 3.1.0 과 대조했습니다. 이모지 시퀀스와 국가 코드 파일 이름은 모든 X 클라이언트와 같다고 보장하지 않습니다. 평가 세트에는 X 케이스 2개가 들어 있습니다.
 - LLM 토큰 수는 호출하는 모델의 토크나이저를 쓰고, SMS 발송은 사업자의 API 를 쓰세요. `charfit` 은 측정만 합니다.
 
 ## 개발

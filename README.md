@@ -62,7 +62,7 @@ For a file of templates, add the file name and the agent runs the batch mode. Th
 **1. A batch of templates** (`check --jsonl`; exit code 0 = every item passes, 1 = at least one does not):
 
 ```
-$ python3 skills/charfit/scripts/charfit.py check --profile sms --jsonl evals/fixtures/task-sms-locales/templates.jsonl --lang en
+$ python3 skills/charfit/scripts/charfit.py check --profile sms --jsonl docs/examples/templates.jsonl --lang en
 PASS en-otp (line 1): sms 1 SMS segment(s) (GSM-7, 111 units, parts start at index 0)
 PASS en-ship (line 2): sms 1 SMS segment(s) (GSM-7, 104 units, parts start at index 0)
 FAIL en-pickup (line 3): sms 2 SMS segment(s) (UCS-2, 120 units, parts start at index 0, 67)
@@ -223,8 +223,8 @@ Input files must be UTF-8. If a file is not, `charfit` exits with `2` and says h
 | Triggers when it should | 12/12 |
 | Stays quiet when it should not | 12/12 |
 | Tasks solved with the skill | 5/5 |
-| Tasks solved without it (baseline) | 2/5 |
-| Mean score gain (Δ) | +0.35 |
+| Tasks solved without it (baseline) | 0/5 |
+| Mean score gain (Δ) | +0.57 |
 | Tasks that catch a broken script | 5/5 |
 | Codex CLI | not verified |
 
@@ -272,7 +272,7 @@ The full rules are in [`skills/charfit/references/rules.md`](skills/charfit/refe
 
 - Fits: template batches in several languages where the segment total changes the bill, long announcements where you need the split points, campaign texts pasted from a CMS, Korean SMS/LMS that must survive strict EUC-KR.
 - Does not cover: word counts, LLM token counts, sending messages, translation, per-country GSM shift tables, recipient-pays segment limits (US/Canada), grapheme counting.
-- Note on X: the `x-post` profile is an approximation of X's published weighting rules, cross-checked against twitter-text 3.1.0. Emoji sequences and country-code file names are not guaranteed to match every X client, and this is not the focus of the tool.
+- Note on X: the `x-post` profile is an approximation of X's published weighting rules, cross-checked against twitter-text 3.1.0. Emoji sequences and country-code file names are not guaranteed to match every X client; the evaluation set still uses it for two X cases.
 - For LLM token counts use the tokenizer of the model you call. To send SMS use your provider's API; `charfit` only measures.
 
 ## Development
